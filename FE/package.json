@@ -90,8 +90,8 @@
     },
     "publish": {
       "provider": "github",
-      "owner": "tuo-username-github",
-      "repo": "nome-repo"
+      "owner": "AleZarpellon",
+      "repo": "GestioneStipendio"
     }
   }
 }
