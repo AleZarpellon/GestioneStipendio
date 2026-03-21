@@ -1,0 +1,230 @@
+<div class="container-custom">
+  <p-card class="card">
+    <div class="w-full! mb-12 section">
+      <div class="mb-4">
+        <h1 class="text-title text-center mb-3">LISTA RATE</h1>
+        <div class="flex justify-between items-center">
+          <div
+            class="flex items-center gap-2 cursor-pointer text-title hover:text-indigo-100 transition-colors"
+            (click)="onAnnullaOrNew(true)"
+          >
+            <i class="pi pi-plus-circle text-lg"></i>
+            <span class="font-medium">Nuova rata</span>
+          </div>
+          <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2">
+              <span class="text-muted text-sm">Inizio mese:</span>
+              <span class="font-bold text-title">{{
+                totaleInizioMese() | currency: 'EUR' : 'symbol' : '1.2-2'
+              }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-muted text-sm">Vicino stipendio:</span>
+              <span class="font-bold text-title">{{
+                totaleVicinoStipendio() | currency: 'EUR' : 'symbol' : '1.2-2'
+              }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-muted text-sm">Totale:</span>
+              <span class="font-bold text-title">{{
+                totale() | currency: 'EUR' : 'symbol' : '1.2-2'
+              }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p-table
+        [columns]="cols()"
+        [value]="rateList()"
+        [paginator]="true"
+        [rows]="5"
+        [rowsPerPageOptions]="[5, 10, 25]"
+        [showCurrentPageReport]="true"
+        currentPageReportTemplate="{first} - {last} di {totalRecords}"
+      >
+        <ng-template #header let-columns>
+          <tr>
+            @for (col of columns; track col) {
+              <th class="text-center!">
+                {{ col | uppercase }}
+              </th>
+            }
+          </tr>
+        </ng-template>
+        <ng-template #body let-rowData let-columns="columns">
+          <tr>
+            @for (col of columns; track col) {
+              <td class="text-center!">
+                @if (col === 'euro' || col === 'maxValore') {
+                  {{ rowData[col] | currency: 'EUR' : 'symbol' : '1.2-2' }}
+                } @else if (col === 'rate') {
+                  {{ rowData['nrRate'] }} / {{ rowData['nrRateMax'] }}
+                } @else if (col === 'azioni') {
+                  <div class="flex justify-center gap-3">
+                    <i
+                      class="pi pi-pencil text-indigo-300 cursor-pointer hover:text-indigo-100 transition-colors"
+                      pTooltip="Modifica"
+                      tooltipPosition="top"
+                      (click)="onEdit(rowData)"
+                    >
+                    </i>
+                    <i
+                      class="pi pi-trash text-red-400 cursor-pointer hover:text-red-300 transition-colors"
+                      pTooltip="Elimina"
+                      tooltipPosition="top"
+                      (click)="onDelete(rowData.idRate)"
+                    >
+                    </i>
+                  </div>
+                } @else {
+                  {{ rowData[col] }}
+                }
+              </td>
+            }
+          </tr>
+        </ng-template>
+      </p-table>
+    </div>
+    @if (checkTipeForm()) {
+      <div class="w-full! section">
+        <div class="text-center mb-4">
+          <h1 class="text-title">{{ checkTipeForm() | uppercase }}</h1>
+        </div>
+        <form [formGroup]="form()" class="flex flex-col gap-4">
+          <div class="flex flex-row gap-4 items-end">
+            <div class="flex flex-col gap-1 flex-1">
+              <label class="font-medium text-body">Descrizione</label>
+              <div class="relative">
+                <input
+                  pInputText
+                  type="text"
+                  formControlName="descrizione"
+                  class="block h-11 w-full rounded-lg bg-card-hover text-body pl-3 pr-10"
+                />
+                <i
+                  class="pi pi-pencil text-amber-400 pointer-events-none absolute top-1/2 right-3 -translate-y-1/2"
+                ></i>
+              </div>
+            </div>
+
+            <!-- Euro -->
+            <div class="flex flex-col gap-1 w-32">
+              <label class="font-medium text-body">Euro</label>
+              <div class="relative">
+                <input
+                  pInputText
+                  type="number"
+                  formControlName="euro"
+                  class="block h-11 w-full rounded-lg bg-card-hover text-body pl-3 pr-10"
+                />
+                <i
+                  class="pi pi-euro text-amber-400 pointer-events-none absolute top-1/2 right-3 -translate-y-1/2"
+                ></i>
+              </div>
+            </div>
+            <!-- periodo-->
+            <div class="flex flex-col items-center gap-1">
+              <label class="font-medium text-body">Periodo</label>
+              <p-selectbutton
+                formControlName="periodo"
+                [options]="periodoOptions"
+                optionLabel="label"
+                optionValue="value"
+              >
+              </p-selectbutton>
+            </div>
+            <!--scelta tipo quantitavivo-->
+            <div class="flex flex-col items-center gap-1">
+              <label class="font-medium text-body">Scelta quant.</label>
+              <p-selectbutton
+                [options]="sceltaQuantitavoOptions"
+                optionLabel="label"
+                optionValue="value"
+                [multiple]="false"
+                [(ngModel)]="sceltaQuantitavo"
+                [ngModelOptions]="{ standalone: true }"
+                (onChange)="onSceltaQuantitavoChange($event.value)"
+              >
+                > > >
+              </p-selectbutton>
+            </div>
+            @if (sceltaQuantitavo()) {
+              @if (sceltaQuantitavo() === 'rate') {
+                <!--rate max-->
+                <div class="flex flex-col gap-1 w-32">
+                  <label class="font-medium text-body">Rate</label>
+                  <div class="relative">
+                    <input
+                      pInputText
+                      type="number"
+                      formControlName="nrRate"
+                      class="block h-11 w-full rounded-lg bg-card-hover text-body pl-3 pr-10"
+                    />
+                    <i
+                      class="pi pi-chart-bar text-amber-400 pointer-events-none absolute top-1/2 right-3 -translate-y-1/2"
+                    ></i>
+                  </div>
+                </div>
+                <!--rate max-->
+                <div class="flex flex-col gap-1 w-32">
+                  <label class="font-medium text-body">Rate max</label>
+                  <div class="relative">
+                    <input
+                      pInputText
+                      type="number"
+                      formControlName="nrRateMax"
+                      class="block h-11 w-full rounded-lg bg-card-hover text-body pl-3 pr-10"
+                    />
+                    <i
+                      class="pi pi-hashtag text-amber-400 pointer-events-none absolute top-1/2 right-3 -translate-y-1/2"
+                    ></i>
+                  </div>
+                </div>
+
+                <div class="flex flex-col gap-1 w-32">
+                  <label class="font-medium text-body">Quota totale</label>
+                  <div class="relative">
+                    <input
+                      pInputText
+                      type="number"
+                      formControlName="maxValore"
+                      class="block h-11 w-full rounded-lg bg-card-hover text-body pl-3 pr-10 input-disabled"
+                    />
+                    <i
+                      class="pi pi-euro text-amber-400 pointer-events-none absolute top-1/2 right-3 -translate-y-1/2"
+                    ></i>
+                  </div>
+                </div>
+              }
+            }
+          </div>
+          <!-- Riga bottone -->
+          <div class="flex mt-4 justify-center">
+            <p-button
+              label="Salva"
+              icon="pi pi-save"
+              styleClass="btn-success"
+              (onClick)="salva()"
+              [disabled]="!checkForm()"
+            ></p-button>
+            @if (checkTipeForm() === 'modifica') {
+              <p-button
+                label="Ripristina"
+                icon="pi pi-history"
+                styleClass="btn-secondary ml-2"
+                (onClick)="onRipristina()"
+              ></p-button>
+            }
+
+            <p-button
+              label="Annula"
+              icon="pi pi-times"
+              styleClass="btn-primary ml-2"
+              (onClick)="onAnnullaOrNew(false)"
+            ></p-button>
+          </div>
+        </form>
+      </div>
+    }
+  </p-card>
+</div>

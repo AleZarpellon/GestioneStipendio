@@ -1,0 +1,16 @@
+FE/node_modules/
+FE/dist/
+FE/release/
+
+# Java
+BE/target/
+
+# Database
+BE/data.db
+BE/test.db
+
+# JRE (troppo pesante)
+FE/resources/jre/
+
+# JAR (viene generato dal build)
+FE/resources/app.jar

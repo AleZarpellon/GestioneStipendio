@@ -1,0 +1,10 @@
+<app-header></app-header>
+@if (spinnerService.isLoading()) {
+  <div class="fixed inset-0 flex items-center justify-center bg-black/40" style="z-index: 99999">
+    <p-progressSpinner strokeWidth="4" styleClass="w-16 h-16" />
+  </div>
+}
+<p-toast></p-toast>
+<main class="bg-slate-800 px-30" style="min-height: calc(100vh - 93px); margin-top: 93px">
+  <router-outlet></router-outlet>
+</main>

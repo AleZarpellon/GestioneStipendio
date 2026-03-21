@@ -1,0 +1,15 @@
+:host {
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+}
+
+.p-menubar {
+  background: transparent !important;
+  border: none !important;
+  justify-content: center !important;
+  padding: 0 !important;
+}
