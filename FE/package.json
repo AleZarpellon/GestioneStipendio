@@ -1,7 +1,7 @@
 {
   "main": "electron/main.js",
   "name": "fe",
-  "version": "0.0.4",
+  "version": "1.0.0",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -59,6 +59,7 @@
   "build": {
     "appId": "com.gestionestipendio.id",
     "productName": "GestioneStipendio",
+    "artifactName": "${productName}-Setup-${version}.${ext}",
     "asar": true,
     "asarUnpack": [
       "dist/**/*"
