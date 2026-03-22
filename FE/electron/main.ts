@@ -43,6 +43,17 @@ function initLogger(): void {
     write('ERROR', args);
     originalError(...args);
   };
+
+  // Cattura TUTTE le promise rejection non gestite — mostra stack completo
+  process.on('unhandledRejection', (reason: any, promise) => {
+    console.error('UnhandledRejection at:', promise);
+    console.error('Reason:', reason?.stack ?? reason);
+  });
+
+  // Cattura eccezioni sincrone non gestite
+  process.on('uncaughtException', (err) => {
+    console.error('UncaughtException:', err.stack ?? err);
+  });
 }
 
 // ─── Paths ───────────────────────────────────────────────────────────────────
@@ -97,7 +108,7 @@ function setLoadingMessage(message: string, percent?: number): void {
     ${percent !== undefined ? `document.getElementById('bar').style.width = '${percent}%';` : ''}
   `,
     )
-    .catch(() => {});
+    .catch((err) => console.warn('setLoadingMessage JS error:', err));
 }
 
 function closeLoadingWindow(): void {
@@ -145,9 +156,7 @@ function checkForUpdate(): Promise<boolean> {
     autoUpdater.on('update-downloaded', (info) => {
       console.log('Update downloaded:', info.version);
       setLoadingMessage('Aggiornamento pronto. Riavvio...', 100);
-
       app.removeAllListeners('window-all-closed');
-
       setTimeout(() => {
         autoUpdater.removeAllListeners();
         autoUpdater.quitAndInstall(false, true);
@@ -166,10 +175,16 @@ function checkForUpdate(): Promise<boolean> {
       }
     }, 15000);
 
-    autoUpdater.checkForUpdates().catch((err) => {
-      console.error('checkForUpdates() error:', err);
-      done(false);
-    });
+    // checkForUpdates() ritorna una Promise — va gestita
+    autoUpdater
+      .checkForUpdates()
+      .then((result) =>
+        console.log('checkForUpdates result:', result?.updateInfo?.version ?? 'none'),
+      )
+      .catch((err) => {
+        console.error('checkForUpdates() error:', err);
+        done(false);
+      });
   });
 }
 
@@ -245,25 +260,38 @@ function createMainWindow(): void {
 
 // ─── App lifecycle ───────────────────────────────────────────────────────────
 
-app.whenReady().then(async () => {
-  initLogger();
-  console.log('App starting, version:', app.getVersion());
-  await createLoadingWindow();
+app
+  .whenReady()
+  .then(async () => {
+    initLogger();
+    console.log('App starting, version:', app.getVersion());
 
-  if (app.isPackaged) {
-    ensureDataDirectory();
+    try {
+      await createLoadingWindow();
 
-    const hasUpdate = await checkForUpdate();
+      if (app.isPackaged) {
+        ensureDataDirectory();
 
-    if (!hasUpdate) {
-      await startSpringBoot();
-      createMainWindow();
+        const hasUpdate = await checkForUpdate();
+
+        if (!hasUpdate) {
+          await startSpringBoot();
+          createMainWindow();
+        }
+      } else {
+        closeLoadingWindow();
+        createMainWindow();
+      }
+    } catch (err) {
+      console.error('Fatal error during startup:', err);
+      dialog.showErrorBox('Errore avvio', String(err));
+      app.quit();
     }
-  } else {
-    closeLoadingWindow();
-    createMainWindow();
-  }
-});
+  })
+  .catch((err) => {
+    // whenReady() stesso non dovrebbe mai fallire, ma per sicurezza
+    console.error('app.whenReady() rejected:', err);
+  });
 
 app.on('before-quit', () => {
   console.log('App quitting...');

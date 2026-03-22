@@ -80,6 +80,17 @@ function initLogger() {
         write('ERROR', args);
         originalError(...args);
     };
+    // Cattura TUTTE le promise rejection non gestite — mostra stack completo
+    process.on('unhandledRejection', (reason, promise) => {
+        var _a;
+        console.error('UnhandledRejection at:', promise);
+        console.error('Reason:', (_a = reason === null || reason === void 0 ? void 0 : reason.stack) !== null && _a !== void 0 ? _a : reason);
+    });
+    // Cattura eccezioni sincrone non gestite
+    process.on('uncaughtException', (err) => {
+        var _a;
+        console.error('UncaughtException:', (_a = err.stack) !== null && _a !== void 0 ? _a : err);
+    });
 }
 // ─── Paths ───────────────────────────────────────────────────────────────────
 function getResourcesPath() {
@@ -124,7 +135,7 @@ function setLoadingMessage(message, percent) {
     document.getElementById('msg').innerText = '${safeMsg}';
     ${percent !== undefined ? `document.getElementById('bar').style.width = '${percent}%';` : ''}
   `)
-        .catch(() => { });
+        .catch((err) => console.warn('setLoadingMessage JS error:', err));
 }
 function closeLoadingWindow() {
     if (loadingWin && !loadingWin.isDestroyed()) {
@@ -181,7 +192,11 @@ function checkForUpdate() {
                 done(false);
             }
         }, 15000);
-        electron_updater_1.autoUpdater.checkForUpdates().catch((err) => {
+        // checkForUpdates() ritorna una Promise — va gestita
+        electron_updater_1.autoUpdater
+            .checkForUpdates()
+            .then((result) => { var _a, _b; return console.log('checkForUpdates result:', (_b = (_a = result === null || result === void 0 ? void 0 : result.updateInfo) === null || _a === void 0 ? void 0 : _a.version) !== null && _b !== void 0 ? _b : 'none'); })
+            .catch((err) => {
             console.error('checkForUpdates() error:', err);
             done(false);
         });
@@ -240,23 +255,36 @@ function createMainWindow() {
     });
 }
 // ─── App lifecycle ───────────────────────────────────────────────────────────
-electron_1.app.whenReady().then(() => __awaiter(void 0, void 0, void 0, function* () {
+electron_1.app
+    .whenReady()
+    .then(() => __awaiter(void 0, void 0, void 0, function* () {
     initLogger();
     console.log('App starting, version:', electron_1.app.getVersion());
-    yield createLoadingWindow();
-    if (electron_1.app.isPackaged) {
-        ensureDataDirectory();
-        const hasUpdate = yield checkForUpdate();
-        if (!hasUpdate) {
-            yield startSpringBoot();
+    try {
+        yield createLoadingWindow();
+        if (electron_1.app.isPackaged) {
+            ensureDataDirectory();
+            const hasUpdate = yield checkForUpdate();
+            if (!hasUpdate) {
+                yield startSpringBoot();
+                createMainWindow();
+            }
+        }
+        else {
+            closeLoadingWindow();
             createMainWindow();
         }
     }
-    else {
-        closeLoadingWindow();
-        createMainWindow();
+    catch (err) {
+        console.error('Fatal error during startup:', err);
+        electron_1.dialog.showErrorBox('Errore avvio', String(err));
+        electron_1.app.quit();
     }
-}));
+}))
+    .catch((err) => {
+    // whenReady() stesso non dovrebbe mai fallire, ma per sicurezza
+    console.error('app.whenReady() rejected:', err);
+});
 electron_1.app.on('before-quit', () => {
     console.log('App quitting...');
     if (springProcess) {
