@@ -44,6 +44,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const electron_1 = require("electron");
 const child_process_1 = require("child_process");
+const fs_1 = require("fs");
 const path = __importStar(require("path"));
 const fs = __importStar(require("fs"));
 const os = __importStar(require("os"));
@@ -52,6 +53,34 @@ const electron_updater_1 = require("electron-updater");
 let mainWin = null;
 let loadingWin = null;
 let springProcess = null;
+let logStream;
+// ─── Logger ───────────────────────────────────────────────────────────────────
+function initLogger() {
+    const logDir = path.join(os.homedir(), 'AppData', 'Local', 'GestioneStipendio');
+    if (!fs.existsSync(logDir))
+        fs.mkdirSync(logDir, { recursive: true });
+    const logPath = path.join(logDir, 'app.log');
+    logStream = (0, fs_1.createWriteStream)(logPath, { flags: 'a' });
+    const originalLog = console.log.bind(console);
+    const originalWarn = console.warn.bind(console);
+    const originalError = console.error.bind(console);
+    const write = (level, args) => {
+        const line = `[${new Date().toISOString()}] [${level}] ${args.map(String).join(' ')}\n`;
+        logStream.write(line);
+    };
+    console.log = (...args) => {
+        write('INFO', args);
+        originalLog(...args);
+    };
+    console.warn = (...args) => {
+        write('WARN', args);
+        originalWarn(...args);
+    };
+    console.error = (...args) => {
+        write('ERROR', args);
+        originalError(...args);
+    };
+}
 // ─── Paths ───────────────────────────────────────────────────────────────────
 function getResourcesPath() {
     return electron_1.app.isPackaged
@@ -66,8 +95,6 @@ function ensureDataDirectory() {
     }
 }
 // ─── Loading window ──────────────────────────────────────────────────────────
-// Usa show:false + ready-to-show per evitare il flash bianco.
-// backgroundColor uguale allo sfondo HTML elimina il colore default di Electron.
 function createLoadingWindow() {
     return new Promise((resolve) => {
         loadingWin = new electron_1.BrowserWindow({
@@ -111,10 +138,11 @@ function checkForUpdate() {
         let updateFound = false;
         let resolved = false;
         const done = (value) => {
-            if (!resolved) {
-                resolved = true;
-                resolve(value);
-            }
+            if (resolved)
+                return;
+            resolved = true;
+            electron_updater_1.autoUpdater.removeAllListeners();
+            resolve(value);
         };
         electron_updater_1.autoUpdater.on('checking-for-update', () => {
             console.log('Checking for update...');
@@ -136,17 +164,17 @@ function checkForUpdate() {
         electron_updater_1.autoUpdater.on('update-downloaded', (info) => {
             console.log('Update downloaded:', info.version);
             setLoadingMessage('Aggiornamento pronto. Riavvio...', 100);
+            electron_1.app.removeAllListeners('window-all-closed');
             setTimeout(() => {
-                electron_updater_1.autoUpdater.quitAndInstall(true, true);
+                electron_updater_1.autoUpdater.removeAllListeners();
+                electron_updater_1.autoUpdater.quitAndInstall(false, true);
             }, 1500);
-            // Non chiamiamo done() — l'app si riavvierà da sola
         });
         electron_updater_1.autoUpdater.on('error', (err) => {
             console.error('AutoUpdater error:', err);
             if (!updateFound)
                 done(false);
         });
-        // Timeout di sicurezza: se il check non risponde entro 15s, procedi
         setTimeout(() => {
             if (!updateFound) {
                 console.warn('Update check timed out, proceeding normally.');
@@ -213,7 +241,9 @@ function createMainWindow() {
 }
 // ─── App lifecycle ───────────────────────────────────────────────────────────
 electron_1.app.whenReady().then(() => __awaiter(void 0, void 0, void 0, function* () {
-    yield createLoadingWindow(); // aspetta che sia visibile prima di procedere
+    initLogger();
+    console.log('App starting, version:', electron_1.app.getVersion());
+    yield createLoadingWindow();
     if (electron_1.app.isPackaged) {
         ensureDataDirectory();
         const hasUpdate = yield checkForUpdate();
@@ -221,7 +251,6 @@ electron_1.app.whenReady().then(() => __awaiter(void 0, void 0, void 0, function
             yield startSpringBoot();
             createMainWindow();
         }
-        // se hasUpdate === true, autoUpdater.quitAndInstall() gestirà il riavvio
     }
     else {
         closeLoadingWindow();
@@ -229,10 +258,12 @@ electron_1.app.whenReady().then(() => __awaiter(void 0, void 0, void 0, function
     }
 }));
 electron_1.app.on('before-quit', () => {
+    console.log('App quitting...');
     if (springProcess) {
         springProcess.kill();
         springProcess = null;
     }
+    logStream === null || logStream === void 0 ? void 0 : logStream.end();
 });
 electron_1.app.on('window-all-closed', () => {
     if (process.platform !== 'darwin')

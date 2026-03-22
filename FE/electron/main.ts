@@ -1,5 +1,6 @@
 import { app, BrowserWindow, dialog } from 'electron';
 import { spawn, ChildProcess } from 'child_process';
+import { createWriteStream, WriteStream } from 'fs';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
@@ -10,6 +11,39 @@ import { autoUpdater } from 'electron-updater';
 let mainWin: BrowserWindow | null = null;
 let loadingWin: BrowserWindow | null = null;
 let springProcess: ChildProcess | null = null;
+let logStream: WriteStream;
+
+// ─── Logger ───────────────────────────────────────────────────────────────────
+
+function initLogger(): void {
+  const logDir = path.join(os.homedir(), 'AppData', 'Local', 'GestioneStipendio');
+  if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
+
+  const logPath = path.join(logDir, 'app.log');
+  logStream = createWriteStream(logPath, { flags: 'a' });
+
+  const originalLog = console.log.bind(console);
+  const originalWarn = console.warn.bind(console);
+  const originalError = console.error.bind(console);
+
+  const write = (level: string, args: any[]) => {
+    const line = `[${new Date().toISOString()}] [${level}] ${args.map(String).join(' ')}\n`;
+    logStream.write(line);
+  };
+
+  console.log = (...args) => {
+    write('INFO', args);
+    originalLog(...args);
+  };
+  console.warn = (...args) => {
+    write('WARN', args);
+    originalWarn(...args);
+  };
+  console.error = (...args) => {
+    write('ERROR', args);
+    originalError(...args);
+  };
+}
 
 // ─── Paths ───────────────────────────────────────────────────────────────────
 
@@ -29,8 +63,6 @@ function ensureDataDirectory(): void {
 }
 
 // ─── Loading window ──────────────────────────────────────────────────────────
-// Usa show:false + ready-to-show per evitare il flash bianco.
-// backgroundColor uguale allo sfondo HTML elimina il colore default di Electron.
 
 function createLoadingWindow(): Promise<void> {
   return new Promise((resolve) => {
@@ -83,10 +115,10 @@ function checkForUpdate(): Promise<boolean> {
     let resolved = false;
 
     const done = (value: boolean) => {
-      if (!resolved) {
-        resolved = true;
-        resolve(value);
-      }
+      if (resolved) return;
+      resolved = true;
+      autoUpdater.removeAllListeners();
+      resolve(value);
     };
 
     autoUpdater.on('checking-for-update', () => {
@@ -113,10 +145,13 @@ function checkForUpdate(): Promise<boolean> {
     autoUpdater.on('update-downloaded', (info) => {
       console.log('Update downloaded:', info.version);
       setLoadingMessage('Aggiornamento pronto. Riavvio...', 100);
+
+      app.removeAllListeners('window-all-closed');
+
       setTimeout(() => {
-        autoUpdater.quitAndInstall(true, true);
+        autoUpdater.removeAllListeners();
+        autoUpdater.quitAndInstall(false, true);
       }, 1500);
-      // Non chiamiamo done() — l'app si riavvierà da sola
     });
 
     autoUpdater.on('error', (err) => {
@@ -124,7 +159,6 @@ function checkForUpdate(): Promise<boolean> {
       if (!updateFound) done(false);
     });
 
-    // Timeout di sicurezza: se il check non risponde entro 15s, procedi
     setTimeout(() => {
       if (!updateFound) {
         console.warn('Update check timed out, proceeding normally.');
@@ -212,7 +246,9 @@ function createMainWindow(): void {
 // ─── App lifecycle ───────────────────────────────────────────────────────────
 
 app.whenReady().then(async () => {
-  await createLoadingWindow(); // aspetta che sia visibile prima di procedere
+  initLogger();
+  console.log('App starting, version:', app.getVersion());
+  await createLoadingWindow();
 
   if (app.isPackaged) {
     ensureDataDirectory();
@@ -223,7 +259,6 @@ app.whenReady().then(async () => {
       await startSpringBoot();
       createMainWindow();
     }
-    // se hasUpdate === true, autoUpdater.quitAndInstall() gestirà il riavvio
   } else {
     closeLoadingWindow();
     createMainWindow();
@@ -231,10 +266,12 @@ app.whenReady().then(async () => {
 });
 
 app.on('before-quit', () => {
+  console.log('App quitting...');
   if (springProcess) {
     springProcess.kill();
     springProcess = null;
   }
+  logStream?.end();
 });
 
 app.on('window-all-closed', () => {
