@@ -38,7 +38,7 @@ export class SpeseComponent implements OnInit {
     this.fb.group({
       idSpesa: [null],
       descrizione: ['', Validators.required],
-      euro: [null, [Validators.required, Validators.min(0)]],
+      euro: [null, [Validators.required]],
       continuative: [false],
       maxValore: [null],
     }),
