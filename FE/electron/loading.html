@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8"/>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      gap: 16px;
+      user-select: none;
+      -webkit-app-region: drag;
+    }
+    h2 { font-size: 15px; font-weight: 500; color: #a0aec0; letter-spacing: 0.05em; }
+    #msg { font-size: 13px; color: #718096; min-height: 18px; transition: opacity 0.2s; }
+    .bar-wrap {
+      width: 280px; height: 4px;
+      background: #2d3748; border-radius: 4px; overflow: hidden;
+    }
+    .bar {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+  </style>
+</head>
+<body>
+  <h2>GestioneStipendio</h2>
+  <div id="msg">Avvio in corso...</div>
+  <div class="bar-wrap"><div class="bar" id="bar"></div></div>
+</body>
+</html>

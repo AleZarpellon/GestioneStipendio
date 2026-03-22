@@ -29,62 +29,34 @@ function ensureDataDirectory(): void {
 }
 
 // ─── Loading window ──────────────────────────────────────────────────────────
+// Usa show:false + ready-to-show per evitare il flash bianco.
+// backgroundColor uguale allo sfondo HTML elimina il colore default di Electron.
 
-function createLoadingWindow(): void {
-  loadingWin = new BrowserWindow({
-    width: 420,
-    height: 220,
-    frame: false,
-    resizable: false,
-    center: true,
-    alwaysOnTop: true,
-    webPreferences: { contextIsolation: true },
+function createLoadingWindow(): Promise<void> {
+  return new Promise((resolve) => {
+    loadingWin = new BrowserWindow({
+      width: 420,
+      height: 220,
+      frame: false,
+      resizable: false,
+      center: true,
+      alwaysOnTop: true,
+      show: false,
+      backgroundColor: '#1a1a2e',
+      webPreferences: { contextIsolation: true },
+    });
+
+    loadingWin.loadFile(path.join(__dirname, 'loading.html'));
+
+    loadingWin.once('ready-to-show', () => {
+      loadingWin?.show();
+      resolve();
+    });
   });
-
-  loadingWin.loadURL(`data:text/html,
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8"/>
-      <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-          font-family: 'Segoe UI', sans-serif;
-          background: #1a1a2e;
-          color: #e0e0e0;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          height: 100vh;
-          gap: 16px;
-          user-select: none;
-        }
-        h2 { font-size: 15px; font-weight: 500; color: #a0aec0; }
-        #msg { font-size: 13px; color: #718096; min-height: 18px; }
-        .bar-wrap {
-          width: 280px; height: 4px;
-          background: #2d3748; border-radius: 4px; overflow: hidden;
-        }
-        .bar {
-          height: 100%; width: 0%;
-          background: linear-gradient(90deg, #667eea, #764ba2);
-          border-radius: 4px;
-          transition: width 0.3s ease;
-        }
-      </style>
-    </head>
-    <body>
-      <h2>GestioneStipendio</h2>
-      <div id="msg">Avvio in corso...</div>
-      <div class="bar-wrap"><div class="bar" id="bar"></div></div>
-    </body>
-    </html>
-  `);
 }
 
 function setLoadingMessage(message: string, percent?: number): void {
-  if (!loadingWin) return;
+  if (!loadingWin || loadingWin.isDestroyed()) return;
   const safeMsg = message.replace(/'/g, "\\'");
   loadingWin.webContents
     .executeJavaScript(
@@ -144,12 +116,12 @@ function checkForUpdate(): Promise<boolean> {
       setTimeout(() => {
         autoUpdater.quitAndInstall(true, true);
       }, 1500);
-      // Non chiamiamo done(true) — l'app si riavvierà da sola
+      // Non chiamiamo done() — l'app si riavvierà da sola
     });
 
     autoUpdater.on('error', (err) => {
       console.error('AutoUpdater error:', err);
-      if (!updateFound) done(false); // procedi normalmente se non aveva ancora trovato nulla
+      if (!updateFound) done(false);
     });
 
     // Timeout di sicurezza: se il check non risponde entro 15s, procedi
@@ -199,10 +171,9 @@ function startSpringBoot(): Promise<void> {
     springProcess.on('error', (err) => {
       console.error('Spring Boot process error:', err);
       dialog.showErrorBox('Errore avvio backend', err.message);
-      resolve(); // procedi comunque, l'app mostrerà un errore di connessione
+      resolve();
     });
 
-    // Timeout massimo di attesa
     setTimeout(resolve, 30000);
   });
 }
@@ -213,7 +184,7 @@ function createMainWindow(): void {
   mainWin = new BrowserWindow({
     width: 1280,
     height: 800,
-    show: false, // mostrata solo dopo il caricamento
+    show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -241,7 +212,7 @@ function createMainWindow(): void {
 // ─── App lifecycle ───────────────────────────────────────────────────────────
 
 app.whenReady().then(async () => {
-  createLoadingWindow();
+  await createLoadingWindow(); // aspetta che sia visibile prima di procedere
 
   if (app.isPackaged) {
     ensureDataDirectory();
@@ -254,7 +225,6 @@ app.whenReady().then(async () => {
     }
     // se hasUpdate === true, autoUpdater.quitAndInstall() gestirà il riavvio
   } else {
-    // Sviluppo: salta update e Spring Boot
     closeLoadingWindow();
     createMainWindow();
   }
