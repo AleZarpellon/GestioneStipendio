@@ -1,7 +1,7 @@
 {
   "main": "electron/main.js",
   "name": "fe",
-  "version": "1.3.1",
+  "version": "1.0.0",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
