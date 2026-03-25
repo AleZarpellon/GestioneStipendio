@@ -11,9 +11,9 @@
     "electron:dev": "concurrently \"ng serve\" \"wait-on http://localhost:4200 && electron .\"",
     "electron:build": "rimraf release && ng build --configuration production && electron-builder",
     "build:all": "cd ../BE && mvn clean package -DskipTests && cd ../FE && npm install && npx tsc -p tsconfig.electron.json && npm run electron:build",
-    "release:patch": "npm version patch --no-git-tag-version && for /f \"delims=\" %i in ('node -p \"require('./package.json').version\"') do set VERSION=%i && git add . && git commit -m \"release patch %npm_package_version%\" && git tag v%npm_package_version% && git push origin main --tags",
-    "release:minor": "npm version minor --no-git-tag-version && for /f \"delims=\" %i in ('node -p \"require('./package.json').version\"') do set VERSION=%i && git add . && git commit -m \"release minor %npm_package_version%\" && git tag v%npm_package_version% && git push origin main --tags",
-    "release:major": "npm version major --no-git-tag-version && for /f \"delims=\" %i in ('node -p \"require('./package.json').version\"') do set VERSION=%i && git add . && git commit -m \"release major %npm_package_version%\" && git tag v%npm_package_version% && git push origin main --tags"
+    "release:patch": "npm version patch --no-git-tag-version && for /f \"delims=\" %i in ('node -p \"require('./package.json').version\"') do set VERSION=%i && git add . && git commit -m \"release patch %VERSION%\" && git tag v%VERSION% && git push origin main --tags",
+    "release:minor": "npm version minor --no-git-tag-version && for /f \"delims=\" %i in ('node -p \"require('./package.json').version\"') do set VERSION=%i && git add . && git commit -m \"release minor %VERSION%\" && git tag v%VERSION% && git push origin main --tags",
+    "release:major": "npm version major --no-git-tag-version && for /f \"delims=\" %i in ('node -p \"require('./package.json').version\"') do set VERSION=%i && git add . && git commit -m \"release major %VERSION%\" && git tag v%VERSION% && git push origin main --tags"
   },
   "prettier": {
     "printWidth": 100,
