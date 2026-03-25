@@ -35,24 +35,39 @@ function initLogger(): void {
     write('INFO', args);
     originalLog(...args);
   };
+
   console.warn = (...args) => {
     write('WARN', args);
     originalWarn(...args);
   };
+
   console.error = (...args) => {
     write('ERROR', args);
     originalError(...args);
   };
 
-  // Cattura TUTTE le promise rejection non gestite — mostra stack completo
-  process.on('unhandledRejection', (reason: any, promise) => {
-    console.error('UnhandledRejection at:', promise);
-    console.error('Reason:', reason?.stack ?? reason);
+  // ERRORI ASINCRONI (Promise)
+  process.on('unhandledRejection', (reason: any) => {
+    console.error('UnhandledRejection:', reason?.stack ?? reason);
+
+    dialog.showErrorBox('Errore critico', String(reason?.stack ?? reason));
+
+    // chiude tutto in modo sicuro
+    setTimeout(() => {
+      app.exit(1);
+    }, 1000);
   });
 
-  // Cattura eccezioni sincrone non gestite
+  // ERRORI SINCRONI
   process.on('uncaughtException', (err) => {
     console.error('UncaughtException:', err.stack ?? err);
+
+    dialog.showErrorBox('Errore critico', String(err.stack ?? err));
+
+    // chiude tutto in modo sicuro
+    setTimeout(() => {
+      app.exit(1);
+    }, 1000);
   });
 }
 
