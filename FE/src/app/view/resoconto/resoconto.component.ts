@@ -124,8 +124,6 @@ export class ResocontoComponent implements OnInit {
       this.spesoError.set('Speso obbligatorio');
     } else if (isNaN(value)) {
       this.spesoError.set('Valore non numerico');
-    } else if (value < 0) {
-      this.spesoError.set('Valore negativo non permesso');
     } else {
       this.spesoError.set('');
     }
