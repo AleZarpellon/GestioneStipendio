@@ -8,7 +8,8 @@ try {
   execSync('git add .', { stdio: 'inherit' });
   execSync(`git commit -m "release ${version}"`, { stdio: 'inherit' });
   execSync(`git tag v${version}`, { stdio: 'inherit' });
-  execSync('git push origin main --follow-tags', { stdio: 'inherit' });
+  execSync('git push origin main', { stdio: 'inherit' });
+  execSync(`git push origin v${version}`, { stdio: 'inherit' });
 
   console.log('✅ Release completata:', version);
 } catch (e) {
