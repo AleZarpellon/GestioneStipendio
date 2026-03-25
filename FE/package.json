@@ -11,9 +11,9 @@
     "electron:dev": "concurrently \"ng serve\" \"wait-on http://localhost:4200 && electron .\"",
     "electron:build": "rimraf release && ng build --configuration production && electron-builder",
     "build:all": "git add . && git commit -m \"pre-release\" || echo ok && npm version patch -m \"release: %s\" && cd ../BE && mvn clean package -DskipTests && cd ../FE && npm install && npx tsc -p tsconfig.electron.json && npm run electron:build",
-    "release:patch": "npm run build:all && git add . && git commit -m \"nuova versione\" && git push origin main --follow-tags",
-    "release:minor": "npm run build:all && git add . && git commit -m \"nuova versione\" && git push origin main --follow-tags",
-    "release:major": "npm run build:all && git add . && git commit -m \"nuova versione\" && git push origin main --follow-tags"
+    "release:patch": "npm run build:all && git push origin main --follow-tags",
+    "release:minor": "npm run build:all && git push origin main --follow-tags",
+    "release:major": "npm run build:all && git push origin main --follow-tags"
   },
   "prettier": {
     "printWidth": 100,
