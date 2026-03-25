@@ -17,6 +17,7 @@ import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { TooltipModule } from 'primeng/tooltip';
 import { SalvadanaiModel } from '../../models/salvadanai.model';
 import { DialogModule } from 'primeng/dialog';
+import { positiveEuroValidator } from '../../shared/validators/euro.validator';
 
 @Component({
   selector: 'app-salvadanai.component',
@@ -25,7 +26,6 @@ import { DialogModule } from 'primeng/dialog';
     TableModule,
     CardModule,
     ReactiveFormsModule,
-    InputText,
     ToggleSwitchModule,
     Button,
     TooltipModule,
@@ -61,8 +61,8 @@ export class SalvadanaiComponent implements OnInit {
     this.fb.group({
       idSalvadanaio: [null],
       descrizione: ['', Validators.required],
-      euro: [null, [Validators.required, Validators.min(0)]],
-      quotaFinale: [null],
+      euro: [null, [Validators.required, positiveEuroValidator()]],
+      quotaFinale: [null, positiveEuroValidator()],
       euroAccumulati: [null],
       attivo: [true],
     }),
@@ -98,7 +98,7 @@ export class SalvadanaiComponent implements OnInit {
         }
       },
       error: (err) => {
-        this.toastService.showErrorHttp(err.error?.message);
+        this.toastService.showErrorHttp(err.message);
         console.error(err);
       },
     });
@@ -118,7 +118,7 @@ export class SalvadanaiComponent implements OnInit {
         }
       },
       error: (err) => {
-        this.toastService.showErrorHttp(err.error?.message);
+        this.toastService.showErrorHttp(err.message);
         console.error(err);
       },
     });
@@ -157,7 +157,7 @@ export class SalvadanaiComponent implements OnInit {
         }
       },
       error: (err) => {
-        this.toastService.showErrorHttp(err.error?.message);
+        this.toastService.showErrorHttp(err.message);
         console.error(err);
       },
     });

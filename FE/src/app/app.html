@@ -6,5 +6,7 @@
 }
 <p-toast></p-toast>
 <main class="bg-slate-800 px-30" style="min-height: calc(100vh - 93px); margin-top: 93px">
-  <router-outlet></router-outlet>
+  <app-error-boundary>
+    <router-outlet></router-outlet>
+  </app-error-boundary>
 </main>

@@ -10,6 +10,7 @@ import { ToastService } from '../../services/toast.service';
 import { Button } from 'primeng/button';
 import { TooltipModule } from 'primeng/tooltip';
 import { SpeseModel } from '../../models/spese.model';
+import { euroValidator, positiveEuroValidator } from '../../shared/validators/euro.validator';
 
 @Component({
   selector: 'app-spese.component',
@@ -38,9 +39,9 @@ export class SpeseComponent implements OnInit {
     this.fb.group({
       idSpesa: [null],
       descrizione: ['', Validators.required],
-      euro: [null, [Validators.required]],
+      euro: [null, [Validators.required, euroValidator()]],
       continuative: [false],
-      maxValore: [null],
+      maxValore: [null, positiveEuroValidator()],
     }),
   );
   totale = computed<number>(() =>
@@ -79,7 +80,7 @@ export class SpeseComponent implements OnInit {
           }
         },
         error: (err) => {
-          this.toastService.showErrorHttp(err.error?.message);
+          this.toastService.showErrorHttp(err.message);
           console.error(err);
         },
       });
@@ -97,7 +98,7 @@ export class SpeseComponent implements OnInit {
         }
       },
       error: (err) => {
-        this.toastService.showErrorHttp(err.error?.message);
+        this.toastService.showErrorHttp(err.message);
         console.error(err);
       },
     });
@@ -117,7 +118,7 @@ export class SpeseComponent implements OnInit {
         }
       },
       error: (err) => {
-        this.toastService.showErrorHttp(err.error?.message);
+        this.toastService.showErrorHttp(err.message);
         console.error(err);
       },
     });

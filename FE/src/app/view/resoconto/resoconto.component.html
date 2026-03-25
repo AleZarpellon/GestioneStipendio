@@ -33,13 +33,16 @@
                 pInputText
                 type="number"
                 [ngModel]="objStipendioRequest()?.stipendio"
-                (ngModelChange)="objStipendioRequest.update(s => ({...s!, stipendio: $event}))"
+                (ngModelChange)="objStipendioRequest.update(s => ({...s!, stipendio: $event})); validateStipendioEuro($event)"
                 class="block h-11 w-full rounded-lg bg-card-hover text-body pl-3 pr-10"
               />
               <i
                 class="pi pi-euro text-amber-400 pointer-events-none absolute top-1/2 right-3 -translate-y-1/2"
               ></i>
             </div>
+            @if (stipendioEuroError()) {
+              <span class="text-red-500 text-sm">{{ stipendioEuroError() }}</span>
+            }
           </div>
 
           <!-- Data inizio -->
@@ -48,7 +51,7 @@
             <div class="relative">
               <p-datepicker
                 [ngModel]="objStipendioRequest()?.dataInizio"
-                (ngModelChange)="objStipendioRequest.update(s => ({...s!, dataInizio: $event}))"
+                (ngModelChange)="objStipendioRequest.update(s => ({...s!, dataInizio: $event})); validateStipendioData($event)"
                 dateFormat="dd/mm/yy"
                 [showIcon]="false"
                 [minDate]="minDate()"
@@ -60,6 +63,9 @@
                 class="pi pi-calendar text-amber-400 pointer-events-none absolute top-1/2 right-3 -translate-y-1/2"
               ></i>
             </div>
+            @if (stipendioDataError()) {
+              <span class="text-red-500 text-sm">{{ stipendioDataError() }}</span>
+            }
           </div>
 
           <!-- Bottoni -->
@@ -174,12 +180,16 @@
           pInputText
           type="number"
           [(ngModel)]="spesoInput"
+          (ngModelChange)="validateSpeso($event)"
           class="block h-11 w-full rounded-lg bg-card-hover text-body pl-3 pr-10"
         />
         <i
           class="pi pi-euro text-amber-400 pointer-events-none absolute top-1/2 right-3 -translate-y-1/2"
         ></i>
       </div>
+      @if (spesoError()) {
+        <span class="text-red-500 text-sm">{{ spesoError() }}</span>
+      }
     </div>
   </div>
   <ng-template #footer>

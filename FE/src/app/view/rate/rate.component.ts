@@ -23,6 +23,10 @@ import { ToastService } from '../../services/toast.service';
 import { RateService } from '../../services/rate.service';
 import { RateModel } from '../../models/rate.model';
 import { TooltipModule } from 'primeng/tooltip';
+import {
+  positiveEuroValidator,
+  positiveIntValidator,
+} from '../../shared/validators/euro.validator';
 import { SelectButtonModule } from 'primeng/selectbutton';
 
 @Component({
@@ -57,10 +61,10 @@ export class RateComponent implements OnInit {
     this.fb.group({
       idRate: [null],
       descrizione: ['', Validators.required],
-      euro: [null, [Validators.required, Validators.min(0)]],
-      nrRate: [null],
-      nrRateMax: [null],
-      maxValore: [null],
+      euro: [null, [Validators.required, positiveEuroValidator()]],
+      nrRate: [null, positiveIntValidator()],
+      nrRateMax: [null, positiveIntValidator()],
+      maxValore: [null, positiveEuroValidator()],
       periodo: ['', [Validators.required]],
     }),
   );
@@ -166,7 +170,7 @@ export class RateComponent implements OnInit {
         }
       },
       error: (err) => {
-        this.toastService.showErrorHttp(err.error?.message);
+        this.toastService.showErrorHttp(err.message);
         console.error(err);
       },
     });
@@ -213,7 +217,7 @@ export class RateComponent implements OnInit {
           }
         },
         error: (err) => {
-          this.toastService.showErrorHttp(err.error?.message);
+          this.toastService.showErrorHttp(err.message);
           console.error(err);
         },
       });
@@ -268,7 +272,7 @@ export class RateComponent implements OnInit {
         }
       },
       error: (err) => {
-        this.toastService.showErrorHttp(err.error?.message);
+        this.toastService.showErrorHttp(err.message);
         console.error(err);
       },
     });

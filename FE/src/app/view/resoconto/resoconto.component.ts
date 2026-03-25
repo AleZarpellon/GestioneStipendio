@@ -62,6 +62,10 @@ export class ResocontoComponent implements OnInit {
   spesoInput = signal<number>(0);
   dialogNuovaGestioneVisible = signal<boolean>(false);
 
+  stipendioEuroError = signal<string>('');
+  stipendioDataError = signal<string>('');
+  spesoError = signal<string>('');
+
   ngOnInit(): void {
     forkJoin({
       stipendio: this.stipendioService.getStipendio(),
@@ -95,6 +99,38 @@ export class ResocontoComponent implements OnInit {
       });
   }
 
+  validateStipendioEuro(value: number | null | undefined) {
+    if (value == null || value === undefined || value === 0) {
+      this.stipendioEuroError.set('Euro obbligatorio');
+    } else if (isNaN(value)) {
+      this.stipendioEuroError.set('Valore non numerico');
+    } else if (value < 0) {
+      this.stipendioEuroError.set('Valore negativo non permesso');
+    } else {
+      this.stipendioEuroError.set('');
+    }
+  }
+
+  validateStipendioData(value: Date | null | undefined) {
+    if (!value) {
+      this.stipendioDataError.set('Data inizio obbligatoria');
+    } else {
+      this.stipendioDataError.set('');
+    }
+  }
+
+  validateSpeso(value: number | null | undefined) {
+    if (value == null || value === undefined) {
+      this.spesoError.set('Speso obbligatorio');
+    } else if (isNaN(value)) {
+      this.spesoError.set('Valore non numerico');
+    } else if (value < 0) {
+      this.spesoError.set('Valore negativo non permesso');
+    } else {
+      this.spesoError.set('');
+    }
+  }
+
   onAnnullaGestione() {
     this.checkTipeFormStipendio.set('');
   }
@@ -106,9 +142,15 @@ export class ResocontoComponent implements OnInit {
       stipendio: response?.stipendio ?? 0,
       dataInizio: response?.dataInizio ? new Date(response.dataInizio) : null,
     });
+    this.validateStipendioEuro(this.objStipendioRequest()?.stipendio);
+    this.validateStipendioData(this.objStipendioRequest()?.dataInizio);
   }
 
   salva() {
+    this.validateStipendioEuro(this.objStipendioRequest()?.stipendio);
+    this.validateStipendioData(this.objStipendioRequest()?.dataInizio);
+    if (this.stipendioEuroError() || this.stipendioDataError()) return;
+
     const request = this.objStipendioRequest();
     if (!request?.stipendio || !request?.dataInizio) return;
 
@@ -140,7 +182,7 @@ export class ResocontoComponent implements OnInit {
           }
         },
         error: (err) => {
-          this.toastService.showErrorHttp(err.error?.message);
+          this.toastService.showErrorHttp(err.message);
           console.error(err);
         },
       });
@@ -159,6 +201,9 @@ export class ResocontoComponent implements OnInit {
   }
 
   onConfermaSpeso() {
+    this.validateSpeso(this.spesoInput());
+    if (this.spesoError()) return;
+
     const budget = this.budgetSelezionato();
     if (!budget?.idSettimana || this.spesoInput === null) return;
 
@@ -171,7 +216,7 @@ export class ResocontoComponent implements OnInit {
         }
       },
       error: (err) => {
-        this.toastService.showErrorHttp(err.error?.message);
+        this.toastService.showErrorHttp(err.message);
         console.error(err);
       },
     });
@@ -207,7 +252,7 @@ export class ResocontoComponent implements OnInit {
         }
       },
       error: (err) => {
-        this.toastService.showErrorHttp(err.error?.message);
+        this.toastService.showErrorHttp(err.message);
         console.error(err);
       },
     });

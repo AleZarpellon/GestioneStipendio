@@ -9,7 +9,10 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "electron:dev": "concurrently \"ng serve\" \"wait-on http://localhost:4200 && electron .\"",
-    "electron:build": "rimraf release && ng build --configuration production && electron-builder"
+    "electron:build": "rimraf release && ng build --configuration production && electron-builder",
+    "release:patch": "npm version patch -m \"release: %s\" && git push origin main --follow-tags",
+    "release:minor": "npm version minor -m \"release: %s\" && git push origin main --follow-tags",
+    "release:major": "npm version major -m \"release: %s\" && git push origin main --follow-tags"
   },
   "prettier": {
     "printWidth": 100,

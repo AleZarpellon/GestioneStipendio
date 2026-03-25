@@ -97,6 +97,12 @@
                   class="pi pi-pencil text-amber-400 pointer-events-none absolute top-1/2 right-3 -translate-y-1/2"
                 ></i>
               </div>
+              @if (form().get('descrizione')?.errors?.['required']) {
+                <span class="text-red-500 text-sm">Descrizione obbligatoria</span>
+              }
+              @if (form().get('descrizione')?.errors?.['minlength']) {
+                <span class="text-red-500 text-sm">Minimo 3 caratteri</span>
+              }
             </div>
 
             <!-- Euro -->
@@ -113,6 +119,9 @@
                   class="pi pi-euro text-amber-400 pointer-events-none absolute top-1/2 right-3 -translate-y-1/2"
                 ></i>
               </div>
+              @if (form().get('euro')?.errors?.['invalidNumber']) {
+                <span class="text-red-500 text-sm">Valore non numerico</span>
+              }
             </div>
 
             <!-- Continuative -->
@@ -136,6 +145,12 @@
                   class="pi pi-arrow-up text-amber-400 pointer-events-none absolute top-1/2 right-3 -translate-y-1/2"
                 ></i>
               </div>
+              @if (form().get('maxValore')?.errors?.['invalidNumber']) {
+                <span class="text-red-500 text-sm">Valore non numerico</span>
+              }
+              @if (form().get('maxValore')?.errors?.['negativeNumber']) {
+                <span class="text-red-500 text-sm">Valore negativo non permesso</span>
+              }
             </div>
             <!-- bottone valmax su euro-->
             <div class="flex flex-col gap-1">
