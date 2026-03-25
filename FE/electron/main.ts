@@ -17,17 +17,18 @@ let logStream: WriteStream;
 
 type LoadingState = 'checking' | 'downloading' | 'installing' | 'starting' | 'done' | 'error';
 
-// ─── Loading Messages ────────────────────────────────────────────────────────
+// ─── Loading Messages (UX CLEAN) ─────────────────────────────────────────────
 
 const LoadingMessages = {
-  CHECK_UPDATE: '🔍 Controllo aggiornamenti...',
-  NO_UPDATE: '✔️ Nessun aggiornamento disponibile',
-  UPDATE_FOUND: (v: string) => `⬇️ Aggiornamento ${v} trovato...`,
-  DOWNLOADING: (p: number) => `⬇️ Download aggiornamento (${p}%)`,
-  INSTALLING: '⚙️ Installazione aggiornamento...',
-  START_BACKEND: '🚀 Avvio backend...',
-  START_APP: '🖥️ Avvio applicazione...',
-  ERROR: "❌ Errore durante l'avvio",
+  CHECK_UPDATE: 'Controllo aggiornamenti...',
+  NO_UPDATE: 'Nessun aggiornamento disponibile',
+  UPDATE_FOUND: (v: string) => `Aggiornamento ${v} trovato`,
+  DOWNLOADING: (pct: number) => `Download aggiornamento... ${pct}%`,
+  INSTALLING: 'Installazione aggiornamento...',
+  PREPARING: 'Preparazione servizi...',
+  STARTING: 'Avvio in corso...',
+  FINALIZING: 'Quasi pronto...',
+  ERROR: 'Errore imprevisto',
 };
 
 // ─── Logger ─────────────────────────────────────────────────────────────────
@@ -49,13 +50,13 @@ function initLogger(): void {
   console.error = (...args) => write('ERROR', args);
 
   process.on('unhandledRejection', (reason: any) => {
-    console.error('UnhandledRejection:', reason?.stack ?? reason);
+    console.error(reason?.stack ?? reason);
     dialog.showErrorBox('Errore critico', String(reason));
     setTimeout(() => app.exit(1), 1000);
   });
 
   process.on('uncaughtException', (err) => {
-    console.error('UncaughtException:', err.stack ?? err);
+    console.error(err.stack ?? err);
     dialog.showErrorBox('Errore critico', String(err));
     setTimeout(() => app.exit(1), 1000);
   });
@@ -165,11 +166,11 @@ function checkForUpdate(): Promise<boolean> {
 
       setTimeout(() => {
         autoUpdater.quitAndInstall(false, true);
-      }, 3000);
+      }, 2500);
     });
 
     autoUpdater.on('error', (err) => {
-      console.error('Updater error:', err);
+      console.error(err);
       setLoadingMessage(LoadingMessages.ERROR, 0, 'error');
       done(false);
     });
@@ -197,7 +198,7 @@ function startSpringBoot(): Promise<void> {
 
     const jarPath = path.join(resourcesPath, 'app.jar');
 
-    setLoadingMessage(LoadingMessages.START_BACKEND, 0, 'starting');
+    setLoadingMessage(LoadingMessages.PREPARING, 20, 'starting');
 
     springProcess = spawn(javaPath, ['-jar', jarPath]);
 
@@ -206,6 +207,7 @@ function startSpringBoot(): Promise<void> {
       console.log(output);
 
       if (output.includes('Started') || output.includes('Tomcat started')) {
+        setLoadingMessage(LoadingMessages.STARTING, 70, 'starting');
         resolve();
       }
     };
@@ -214,7 +216,7 @@ function startSpringBoot(): Promise<void> {
     springProcess.stderr?.on('data', onData);
 
     springProcess.on('error', (err) => {
-      console.error('Spring error:', err);
+      console.error(err);
       setLoadingMessage(LoadingMessages.ERROR, 0, 'error');
       dialog.showErrorBox('Errore backend', err.message);
       resolve();
@@ -246,8 +248,12 @@ function createMainWindow(): void {
   }
 
   mainWin.once('ready-to-show', () => {
-    closeLoadingWindow();
-    mainWin?.show();
+    setLoadingMessage(LoadingMessages.FINALIZING, 100, 'done');
+
+    setTimeout(() => {
+      closeLoadingWindow();
+      mainWin?.show();
+    }, 500);
   });
 }
 
@@ -266,7 +272,6 @@ app.whenReady().then(async () => {
 
       if (!updating) {
         await startSpringBoot();
-        setLoadingMessage(LoadingMessages.START_APP, 100, 'done');
         createMainWindow();
       }
     } else {
