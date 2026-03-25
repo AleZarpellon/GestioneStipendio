@@ -22,52 +22,25 @@ function initLogger(): void {
   const logPath = path.join(logDir, 'app.log');
   logStream = createWriteStream(logPath, { flags: 'a' });
 
-  const originalLog = console.log.bind(console);
-  const originalWarn = console.warn.bind(console);
-  const originalError = console.error.bind(console);
-
   const write = (level: string, args: any[]) => {
     const line = `[${new Date().toISOString()}] [${level}] ${args.map(String).join(' ')}\n`;
     logStream.write(line);
   };
 
-  console.log = (...args) => {
-    write('INFO', args);
-    originalLog(...args);
-  };
+  console.log = (...args) => write('INFO', args);
+  console.warn = (...args) => write('WARN', args);
+  console.error = (...args) => write('ERROR', args);
 
-  console.warn = (...args) => {
-    write('WARN', args);
-    originalWarn(...args);
-  };
-
-  console.error = (...args) => {
-    write('ERROR', args);
-    originalError(...args);
-  };
-
-  // ERRORI ASINCRONI (Promise)
   process.on('unhandledRejection', (reason: any) => {
     console.error('UnhandledRejection:', reason?.stack ?? reason);
-
-    dialog.showErrorBox('Errore critico', String(reason?.stack ?? reason));
-
-    // chiude tutto in modo sicuro
-    setTimeout(() => {
-      app.exit(1);
-    }, 1000);
+    dialog.showErrorBox('Errore critico', String(reason));
+    setTimeout(() => app.exit(1), 1000);
   });
 
-  // ERRORI SINCRONI
   process.on('uncaughtException', (err) => {
     console.error('UncaughtException:', err.stack ?? err);
-
-    dialog.showErrorBox('Errore critico', String(err.stack ?? err));
-
-    // chiude tutto in modo sicuro
-    setTimeout(() => {
-      app.exit(1);
-    }, 1000);
+    dialog.showErrorBox('Errore critico', String(err));
+    setTimeout(() => app.exit(1), 1000);
   });
 }
 
@@ -101,7 +74,10 @@ function createLoadingWindow(): Promise<void> {
       alwaysOnTop: true,
       show: false,
       backgroundColor: '#1a1a2e',
-      webPreferences: { contextIsolation: true },
+      webPreferences: {
+        preload: path.join(__dirname, 'preload.js'), // ✅ FIX
+        contextIsolation: true,
+      },
     });
 
     loadingWin.loadFile(path.join(__dirname, 'loading.html'));
@@ -115,6 +91,7 @@ function createLoadingWindow(): Promise<void> {
 
 function setLoadingMessage(message: string, percent?: number): void {
   if (!loadingWin || loadingWin.isDestroyed()) return;
+  console.log('LOADING:', message, percent); // debug
   loadingWin.webContents.send('update-loading', { message, percent });
 }
 
@@ -140,19 +117,16 @@ function checkForUpdate(): Promise<boolean> {
     };
 
     autoUpdater.on('checking-for-update', () => {
-      console.log('Checking for update...');
       setLoadingMessage('Controllo aggiornamenti...');
     });
 
     autoUpdater.on('update-not-available', () => {
-      console.log('No update available.');
       done(false);
     });
 
     autoUpdater.on('update-available', (info) => {
-      console.log('Update available:', info.version);
       updateFound = true;
-      setLoadingMessage(`Aggiornamento ${info.version} trovato. Download in corso...`, 0);
+      setLoadingMessage(`Aggiornamento ${info.version} trovato...`, 0);
     });
 
     autoUpdater.on('download-progress', (progress) => {
@@ -160,45 +134,26 @@ function checkForUpdate(): Promise<boolean> {
       setLoadingMessage(`Download: ${pct}%`, pct);
     });
 
-    // 🔥 FIX IMPORTANTE QUI
-    autoUpdater.on('update-downloaded', (info) => {
-      console.log('Update downloaded:', info.version);
-
+    autoUpdater.on('update-downloaded', () => {
       setLoadingMessage('Aggiornamento pronto. Riavvio...', 100);
 
-      done(true); // 👈 BLOCCA IL FLUSSO PRINCIPALE
+      done(true);
 
       setTimeout(() => {
         autoUpdater.quitAndInstall(false, true);
-      }, 1500);
+      }, 3000); // ✅ FIX per vedere UI
     });
 
     autoUpdater.on('error', (err) => {
-      console.error('AutoUpdater error:', err);
-
-      // se NON stava aggiornando → continua normalmente
-      if (!updateFound) {
-        done(false);
-      }
+      console.error('Updater error:', err);
+      if (!updateFound) done(false);
     });
 
-    // timeout sicurezza
     setTimeout(() => {
-      if (!updateFound) {
-        console.warn('Update check timed out, proceeding normally.');
-        done(false);
-      }
+      if (!updateFound) done(false);
     }, 15000);
 
-    autoUpdater
-      .checkForUpdates()
-      .then((result) => {
-        console.log('checkForUpdates result:', result?.updateInfo?.version ?? 'none');
-      })
-      .catch((err) => {
-        console.error('checkForUpdates() error:', err);
-        done(false);
-      });
+    autoUpdater.checkForUpdates().catch(() => done(false));
   });
 }
 
@@ -207,22 +162,24 @@ function checkForUpdate(): Promise<boolean> {
 function startSpringBoot(): Promise<void> {
   return new Promise((resolve) => {
     const resourcesPath = getResourcesPath();
+
     const javaPath = path.join(
       resourcesPath,
       'jre',
       'bin',
       process.platform === 'win32' ? 'java.exe' : 'java',
     );
+
     const jarPath = path.join(resourcesPath, 'app.jar');
 
     setLoadingMessage('Avvio backend...');
-    console.log('Starting Spring Boot:', jarPath);
 
     springProcess = spawn(javaPath, ['-jar', jarPath]);
 
     const onData = (data: Buffer) => {
       const output = data.toString();
-      console.log('Spring Boot:', output.trim());
+      console.log(output);
+
       if (output.includes('Started') || output.includes('Tomcat started')) {
         resolve();
       }
@@ -232,8 +189,8 @@ function startSpringBoot(): Promise<void> {
     springProcess.stderr?.on('data', onData);
 
     springProcess.on('error', (err) => {
-      console.error('Spring Boot process error:', err);
-      dialog.showErrorBox('Errore avvio backend', err.message);
+      console.error('Spring error:', err);
+      dialog.showErrorBox('Errore backend', err.message);
       resolve();
     });
 
@@ -266,49 +223,36 @@ function createMainWindow(): void {
     closeLoadingWindow();
     mainWin?.show();
   });
-
-  mainWin.on('closed', () => {
-    mainWin = null;
-  });
 }
 
 // ─── App lifecycle ───────────────────────────────────────────────────────────
 
-app
-  .whenReady()
-  .then(async () => {
-    initLogger();
-    console.log('App starting, version:', app.getVersion());
+app.whenReady().then(async () => {
+  initLogger();
 
-    try {
-      await createLoadingWindow();
+  try {
+    await createLoadingWindow();
 
-      if (app.isPackaged) {
-        ensureDataDirectory();
+    if (app.isPackaged) {
+      ensureDataDirectory();
 
-        const hasUpdate = await checkForUpdate();
+      const updating = await checkForUpdate();
 
-        if (!hasUpdate) {
-          await startSpringBoot();
-          createMainWindow();
-        }
-      } else {
-        closeLoadingWindow();
+      if (!updating) {
+        await startSpringBoot();
         createMainWindow();
       }
-    } catch (err) {
-      console.error('Fatal error during startup:', err);
-      dialog.showErrorBox('Errore avvio', String(err));
-      app.quit();
+    } else {
+      closeLoadingWindow();
+      createMainWindow();
     }
-  })
-  .catch((err) => {
-    // whenReady() stesso non dovrebbe mai fallire, ma per sicurezza
-    console.error('app.whenReady() rejected:', err);
-  });
+  } catch (err) {
+    dialog.showErrorBox('Errore avvio', String(err));
+    app.quit();
+  }
+});
 
 app.on('before-quit', () => {
-  console.log('App quitting...');
   if (springProcess) {
     springProcess.kill();
     springProcess = null;
@@ -318,8 +262,4 @@ app.on('before-quit', () => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
-});
-
-app.on('activate', () => {
-  if (mainWin === null) createMainWindow();
 });
