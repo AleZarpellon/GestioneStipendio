@@ -129,13 +129,7 @@ function createLoadingWindow() {
 function setLoadingMessage(message, percent) {
     if (!loadingWin || loadingWin.isDestroyed())
         return;
-    const safeMsg = message.replace(/'/g, "\\'");
-    loadingWin.webContents
-        .executeJavaScript(`
-    document.getElementById('msg').innerText = '${safeMsg}';
-    ${percent !== undefined ? `document.getElementById('bar').style.width = '${percent}%';` : ''}
-  `)
-        .catch((err) => console.warn('setLoadingMessage JS error:', err));
+    loadingWin.webContents.send('update-loading', { message, percent });
 }
 function closeLoadingWindow() {
     if (loadingWin && !loadingWin.isDestroyed()) {
