@@ -20,7 +20,9 @@ jobs:
       - run: cd BE && mvn clean package -DskipTests
       - run: cd FE && npm install
       - run: cd FE && npx tsc -p tsconfig.electron.json
-      - run: cd FE && npm run electron:build --publish=never
+      - run: cd FE && npm run electron:build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Release
         uses: softprops/action-gh-release@v2
