@@ -92,11 +92,6 @@
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
       "include": "build/uninstaller.nsh"
-    },
-    "publish": {
-      "provider": "github",
-      "owner": "AleZarpellon",
-      "repo": "GestioneStipendio"
     }
   }
 }
