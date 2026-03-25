@@ -160,21 +160,29 @@ function checkForUpdate(): Promise<boolean> {
       setLoadingMessage(`Download: ${pct}%`, pct);
     });
 
+    // 🔥 FIX IMPORTANTE QUI
     autoUpdater.on('update-downloaded', (info) => {
       console.log('Update downloaded:', info.version);
+
       setLoadingMessage('Aggiornamento pronto. Riavvio...', 100);
-      app.removeAllListeners('window-all-closed');
+
+      done(true); // 👈 BLOCCA IL FLUSSO PRINCIPALE
+
       setTimeout(() => {
-        autoUpdater.removeAllListeners();
         autoUpdater.quitAndInstall(false, true);
       }, 1500);
     });
 
     autoUpdater.on('error', (err) => {
       console.error('AutoUpdater error:', err);
-      if (!updateFound) done(false);
+
+      // se NON stava aggiornando → continua normalmente
+      if (!updateFound) {
+        done(false);
+      }
     });
 
+    // timeout sicurezza
     setTimeout(() => {
       if (!updateFound) {
         console.warn('Update check timed out, proceeding normally.');
@@ -182,12 +190,11 @@ function checkForUpdate(): Promise<boolean> {
       }
     }, 15000);
 
-    // checkForUpdates() ritorna una Promise — va gestita
     autoUpdater
       .checkForUpdates()
-      .then((result) =>
-        console.log('checkForUpdates result:', result?.updateInfo?.version ?? 'none'),
-      )
+      .then((result) => {
+        console.log('checkForUpdates result:', result?.updateInfo?.version ?? 'none');
+      })
       .catch((err) => {
         console.error('checkForUpdates() error:', err);
         done(false);
