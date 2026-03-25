@@ -8,6 +8,7 @@
         padding: 0;
         box-sizing: border-box;
       }
+
       body {
         font-family: 'Segoe UI', sans-serif;
         background: #1a1a2e;
@@ -17,50 +18,108 @@
         align-items: center;
         justify-content: center;
         height: 100vh;
-        gap: 16px;
+        gap: 20px;
         user-select: none;
         -webkit-app-region: drag;
       }
+
       h2 {
-        font-size: 15px;
+        font-size: 16px;
         font-weight: 500;
         color: #a0aec0;
         letter-spacing: 0.05em;
       }
+
       #msg {
         font-size: 13px;
-        color: #718096;
-        min-height: 18px;
-        transition: opacity 0.2s;
+        color: #cbd5f5;
+        min-height: 20px;
+        text-align: center;
+        transition: opacity 0.3s;
       }
+
+      .progress-container {
+        width: 300px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
       .bar-wrap {
-        width: 280px;
-        height: 4px;
+        width: 100%;
+        height: 6px;
         background: #2d3748;
-        border-radius: 4px;
+        border-radius: 6px;
         overflow: hidden;
       }
+
       .bar {
         height: 100%;
         width: 0%;
         background: linear-gradient(90deg, #667eea, #764ba2);
-        border-radius: 4px;
-        transition: width 0.3s ease;
+        border-radius: 6px;
+        transition: width 0.25s ease;
+      }
+
+      .percent {
+        font-size: 11px;
+        color: #718096;
+        text-align: right;
+      }
+
+      .spinner {
+        width: 18px;
+        height: 18px;
+        border: 2px solid #4a5568;
+        border-top: 2px solid #667eea;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
       }
     </style>
   </head>
-  <script>
-    window.api.onUpdateLoading(({ message, percent }) => {
-      const msg = document.getElementById('msg');
-      const bar = document.getElementById('bar');
 
-      if (message) msg.innerText = message;
-      if (percent !== undefined) bar.style.width = percent + '%';
-    });
-  </script>
   <body>
     <h2>GestioneStipendio</h2>
+
+    <div class="spinner"></div>
+
     <div id="msg">Avvio in corso...</div>
-    <div class="bar-wrap"><div class="bar" id="bar"></div></div>
+
+    <div class="progress-container">
+      <div class="bar-wrap">
+        <div class="bar" id="bar"></div>
+      </div>
+      <div class="percent" id="percent">0%</div>
+    </div>
+
+    <script>
+      window.api.onUpdateLoading(({ message, percent }) => {
+        const msg = document.getElementById('msg');
+        const bar = document.getElementById('bar');
+        const pctText = document.getElementById('percent');
+
+        if (message) {
+          msg.style.opacity = 0;
+          setTimeout(() => {
+            msg.innerText = message;
+            msg.style.opacity = 1;
+          }, 150);
+        }
+
+        if (percent !== undefined) {
+          bar.style.width = percent + '%';
+          pctText.innerText = percent + '%';
+        }
+      });
+    </script>
   </body>
 </html>

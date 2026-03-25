@@ -13,7 +13,24 @@ let loadingWin: BrowserWindow | null = null;
 let springProcess: ChildProcess | null = null;
 let logStream: WriteStream;
 
-// ─── Logger ───────────────────────────────────────────────────────────────────
+// ─── Loading States ──────────────────────────────────────────────────────────
+
+type LoadingState = 'checking' | 'downloading' | 'installing' | 'starting' | 'done' | 'error';
+
+// ─── Loading Messages ────────────────────────────────────────────────────────
+
+const LoadingMessages = {
+  CHECK_UPDATE: '🔍 Controllo aggiornamenti...',
+  NO_UPDATE: '✔️ Nessun aggiornamento disponibile',
+  UPDATE_FOUND: (v: string) => `⬇️ Aggiornamento ${v} trovato...`,
+  DOWNLOADING: (p: number) => `⬇️ Download aggiornamento (${p}%)`,
+  INSTALLING: '⚙️ Installazione aggiornamento...',
+  START_BACKEND: '🚀 Avvio backend...',
+  START_APP: '🖥️ Avvio applicazione...',
+  ERROR: "❌ Errore durante l'avvio",
+};
+
+// ─── Logger ─────────────────────────────────────────────────────────────────
 
 function initLogger(): void {
   const logDir = path.join(os.homedir(), 'AppData', 'Local', 'GestioneStipendio');
@@ -44,7 +61,7 @@ function initLogger(): void {
   });
 }
 
-// ─── Paths ───────────────────────────────────────────────────────────────────
+// ─── Utils ───────────────────────────────────────────────────────────────────
 
 function getResourcesPath(): string {
   return app.isPackaged
@@ -52,22 +69,18 @@ function getResourcesPath(): string {
     : path.join(__dirname, '../resources');
 }
 
-// ─── Data directory ──────────────────────────────────────────────────────────
-
 function ensureDataDirectory(): void {
   const dataDir = path.join(os.homedir(), 'AppData', 'Local', 'GestioneStipendio');
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-  }
+  if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 }
 
-// ─── Loading window ──────────────────────────────────────────────────────────
+// ─── Loading Window ──────────────────────────────────────────────────────────
 
 function createLoadingWindow(): Promise<void> {
   return new Promise((resolve) => {
     loadingWin = new BrowserWindow({
       width: 420,
-      height: 220,
+      height: 240,
       frame: false,
       resizable: false,
       center: true,
@@ -75,7 +88,7 @@ function createLoadingWindow(): Promise<void> {
       show: false,
       backgroundColor: '#1a1a2e',
       webPreferences: {
-        preload: path.join(__dirname, 'preload.js'), // ✅ FIX
+        preload: path.join(__dirname, 'preload.js'),
         contextIsolation: true,
       },
     });
@@ -89,10 +102,20 @@ function createLoadingWindow(): Promise<void> {
   });
 }
 
-function setLoadingMessage(message: string, percent?: number): void {
+function setLoadingMessage(
+  message: string,
+  percent?: number,
+  state: LoadingState = 'checking',
+): void {
   if (!loadingWin || loadingWin.isDestroyed()) return;
-  console.log('LOADING:', message, percent); // debug
-  loadingWin.webContents.send('update-loading', { message, percent });
+
+  console.log(`[LOADING] ${message} (${percent ?? 0}%)`);
+
+  loadingWin.webContents.send('update-loading', {
+    message,
+    percent,
+    state,
+  });
 }
 
 function closeLoadingWindow(): void {
@@ -102,7 +125,7 @@ function closeLoadingWindow(): void {
   }
 }
 
-// ─── Auto updater ─────────────────────────────────────────────────────────────
+// ─── Auto Updater ────────────────────────────────────────────────────────────
 
 function checkForUpdate(): Promise<boolean> {
   return new Promise((resolve) => {
@@ -117,36 +140,38 @@ function checkForUpdate(): Promise<boolean> {
     };
 
     autoUpdater.on('checking-for-update', () => {
-      setLoadingMessage('Controllo aggiornamenti...');
+      setLoadingMessage(LoadingMessages.CHECK_UPDATE, 0, 'checking');
     });
 
     autoUpdater.on('update-not-available', () => {
-      done(false);
+      setLoadingMessage(LoadingMessages.NO_UPDATE, 100, 'done');
+      setTimeout(() => done(false), 800);
     });
 
     autoUpdater.on('update-available', (info) => {
       updateFound = true;
-      setLoadingMessage(`Aggiornamento ${info.version} trovato...`, 0);
+      setLoadingMessage(LoadingMessages.UPDATE_FOUND(info.version), 0, 'downloading');
     });
 
     autoUpdater.on('download-progress', (progress) => {
       const pct = Math.round(progress.percent);
-      setLoadingMessage(`Download: ${pct}%`, pct);
+      setLoadingMessage(LoadingMessages.DOWNLOADING(pct), pct, 'downloading');
     });
 
     autoUpdater.on('update-downloaded', () => {
-      setLoadingMessage('Aggiornamento pronto. Riavvio...', 100);
+      setLoadingMessage(LoadingMessages.INSTALLING, 100, 'installing');
 
       done(true);
 
       setTimeout(() => {
         autoUpdater.quitAndInstall(false, true);
-      }, 3000); // ✅ FIX per vedere UI
+      }, 3000);
     });
 
     autoUpdater.on('error', (err) => {
       console.error('Updater error:', err);
-      if (!updateFound) done(false);
+      setLoadingMessage(LoadingMessages.ERROR, 0, 'error');
+      done(false);
     });
 
     setTimeout(() => {
@@ -172,7 +197,7 @@ function startSpringBoot(): Promise<void> {
 
     const jarPath = path.join(resourcesPath, 'app.jar');
 
-    setLoadingMessage('Avvio backend...');
+    setLoadingMessage(LoadingMessages.START_BACKEND, 0, 'starting');
 
     springProcess = spawn(javaPath, ['-jar', jarPath]);
 
@@ -190,6 +215,7 @@ function startSpringBoot(): Promise<void> {
 
     springProcess.on('error', (err) => {
       console.error('Spring error:', err);
+      setLoadingMessage(LoadingMessages.ERROR, 0, 'error');
       dialog.showErrorBox('Errore backend', err.message);
       resolve();
     });
@@ -198,7 +224,7 @@ function startSpringBoot(): Promise<void> {
   });
 }
 
-// ─── Main window ─────────────────────────────────────────────────────────────
+// ─── Main Window ─────────────────────────────────────────────────────────────
 
 function createMainWindow(): void {
   mainWin = new BrowserWindow({
@@ -225,7 +251,7 @@ function createMainWindow(): void {
   });
 }
 
-// ─── App lifecycle ───────────────────────────────────────────────────────────
+// ─── App Lifecycle ───────────────────────────────────────────────────────────
 
 app.whenReady().then(async () => {
   initLogger();
@@ -240,6 +266,7 @@ app.whenReady().then(async () => {
 
       if (!updating) {
         await startSpringBoot();
+        setLoadingMessage(LoadingMessages.START_APP, 100, 'done');
         createMainWindow();
       }
     } else {
@@ -247,10 +274,13 @@ app.whenReady().then(async () => {
       createMainWindow();
     }
   } catch (err) {
+    setLoadingMessage(LoadingMessages.ERROR, 0, 'error');
     dialog.showErrorBox('Errore avvio', String(err));
     app.quit();
   }
 });
+
+// ─── Quit ────────────────────────────────────────────────────────────────────
 
 app.on('before-quit', () => {
   if (springProcess) {
