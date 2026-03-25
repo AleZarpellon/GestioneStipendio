@@ -1,7 +1,7 @@
 {
   "main": "electron/main.js",
   "name": "fe",
-  "version": "1.0.4",
+  "version": "1.0.2",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -92,6 +92,13 @@
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
       "include": "build/uninstaller.nsh"
-    }
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "AleZarpellon",
+        "repo": "GestioneStipendio"
+      }
+    ]
   }
 }
