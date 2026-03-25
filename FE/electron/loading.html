@@ -25,28 +25,34 @@
 
       h2 {
         font-size: 16px;
-        font-weight: 500;
         color: #a0aec0;
-        letter-spacing: 0.05em;
       }
 
       #msg {
         font-size: 13px;
-        color: #cbd5f5;
         min-height: 20px;
         text-align: center;
         transition: opacity 0.3s;
       }
 
-      .progress-container {
-        width: 300px;
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
+      .spinner {
+        width: 22px;
+        height: 22px;
+        border: 3px solid #444;
+        border-top: 3px solid #667eea;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        transition: border-top-color 0.3s;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
       }
 
       .bar-wrap {
-        width: 100%;
+        width: 300px;
         height: 6px;
         background: #2d3748;
         border-radius: 6px;
@@ -56,33 +62,17 @@
       .bar {
         height: 100%;
         width: 0%;
-        background: linear-gradient(90deg, #667eea, #764ba2);
-        border-radius: 6px;
-        transition: width 0.25s ease;
+        background: #667eea;
+        transition:
+          width 0.25s ease,
+          background 0.3s;
       }
 
       .percent {
         font-size: 11px;
         color: #718096;
         text-align: right;
-      }
-
-      .spinner {
-        width: 18px;
-        height: 18px;
-        border: 2px solid #4a5568;
-        border-top: 2px solid #667eea;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-      }
-
-      @keyframes spin {
-        0% {
-          transform: rotate(0deg);
-        }
-        100% {
-          transform: rotate(360deg);
-        }
+        width: 300px;
       }
     </style>
   </head>
@@ -90,34 +80,69 @@
   <body>
     <h2>GestioneStipendio</h2>
 
-    <div class="spinner"></div>
+    <div class="spinner" id="spinner"></div>
 
     <div id="msg">Avvio in corso...</div>
 
-    <div class="progress-container">
-      <div class="bar-wrap">
-        <div class="bar" id="bar"></div>
-      </div>
-      <div class="percent" id="percent">0%</div>
+    <div class="bar-wrap">
+      <div class="bar" id="bar"></div>
     </div>
 
+    <div class="percent" id="percent">0%</div>
+
     <script>
-      window.api.onUpdateLoading(({ message, percent }) => {
+      window.api.onUpdateLoading(({ message, percent, state }) => {
         const msg = document.getElementById('msg');
         const bar = document.getElementById('bar');
         const pctText = document.getElementById('percent');
+        const spinner = document.getElementById('spinner');
 
+        // testo
         if (message) {
           msg.style.opacity = 0;
           setTimeout(() => {
             msg.innerText = message;
             msg.style.opacity = 1;
-          }, 150);
+          }, 100);
         }
 
+        // percentuale
         if (percent !== undefined) {
           bar.style.width = percent + '%';
           pctText.innerText = percent + '%';
+        }
+
+        // 🎨 COLORI + SPINNER PER STATO
+        switch (state) {
+          case 'checking':
+            bar.style.background = '#667eea';
+            spinner.style.borderTopColor = '#667eea';
+            break;
+
+          case 'downloading':
+            bar.style.background = '#4299e1';
+            spinner.style.borderTopColor = '#4299e1';
+            break;
+
+          case 'installing':
+            bar.style.background = '#ed8936';
+            spinner.style.borderTopColor = '#ed8936';
+            break;
+
+          case 'starting':
+            bar.style.background = '#38a169';
+            spinner.style.borderTopColor = '#38a169';
+            break;
+
+          case 'done':
+            bar.style.background = '#48bb78';
+            spinner.style.borderTopColor = '#48bb78';
+            break;
+
+          case 'error':
+            bar.style.background = '#e53e3e';
+            spinner.style.borderTopColor = '#e53e3e';
+            break;
         }
       });
     </script>
