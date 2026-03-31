@@ -8,6 +8,8 @@ import com.za.testexe.repository.AppConfigRepository;
 import com.za.testexe.repository.BudgetSettimanaleRepository;
 import com.za.testexe.repository.RisparmioRepository;
 import com.za.testexe.repository.StipendioRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -17,52 +19,36 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Component
-public class DbInitializer {
+@RequiredArgsConstructor // Se usi Lombok, altrimenti tieni il tuo costruttore
+public class DbInitializer implements CommandLineRunner { // 1. Implementa questa interfaccia
 
     private final RisparmioRepository risparmioRepository;
     private final StipendioRepository stipendioRepository;
     private final BudgetSettimanaleRepository settimanaRepository;
     private final AppConfigRepository configRepository;
 
-    public DbInitializer(RisparmioRepository risparmioRepository,
-                         StipendioRepository stipendioRepository,
-                         BudgetSettimanaleRepository settimanaRepository,
-                         AppConfigRepository configRepository) {
-        this.risparmioRepository = risparmioRepository;
-        this.stipendioRepository = stipendioRepository;
-        this.settimanaRepository = settimanaRepository;
-        this.configRepository = configRepository;
-    }
+    // 2. Sostituisci il metodo init() con questo
+    @Override
+    public void run(String... args) {
 
-    @EventListener(ApplicationReadyEvent.class)
-    @Transactional
-    public void init() {
-
-        // 🔒 CONTROLLO SICURO
         if (configRepository.existsById("DB_INITIALIZED")) {
             return;
         }
 
-        boolean dbGiaPopolato =
-                stipendioRepository.count() > 0 ||
-                        settimanaRepository.count() > 0 ||
-                        risparmioRepository.count() > 0;
+        // Il resto della tua logica rimane identica
+        if (stipendioRepository.count() > 0 ||
+                settimanaRepository.count() > 0 ||
+                risparmioRepository.count() > 0) {
 
-        if (dbGiaPopolato) {
-            System.out.println("DB già esistente → aggiungo solo flag");
-
-            // ✅ NON inizializzo, salvo solo il flag
             configRepository.save(new AppConfig("DB_INITIALIZED", "true"));
             return;
         }
 
         System.out.println("Inizializzazione database...");
-
         initStipendio();
         initSettimane();
         initRisparmio();
 
-        // ✅ SALVO FLAG
         configRepository.save(new AppConfig("DB_INITIALIZED", "true"));
     }
 
