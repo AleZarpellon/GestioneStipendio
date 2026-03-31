@@ -13,4 +13,8 @@ export class RisparmioService {
   getRisparmi(): Observable<ApiResponse<RisparmioResponse[]>> {
     return this.http.get<ApiResponse<RisparmioResponse[]>>(`${this.baseUrl}/lista`);
   }
+
+  aggiornaTotale(importo: number): Observable<ApiResponse<void>> {
+    return this.http.post<ApiResponse<void>>(`${this.baseUrl}/totale`, { importo: importo });
+  }
 }

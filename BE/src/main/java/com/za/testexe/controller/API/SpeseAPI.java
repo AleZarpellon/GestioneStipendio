@@ -19,7 +19,7 @@ import java.util.List;
 
 @RequestMapping("/api/spese")
 public interface SpeseAPI {
-    @PostMapping(path = "/salva", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(path = "/salva")
     @Operation(
             summary = "Salva spesa",
             description = "Salva una nuova spesa"

@@ -2,6 +2,7 @@ package com.za.testexe.model.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.math.BigDecimal;
 
 @Table(name = "risparmio")
@@ -17,4 +18,6 @@ public class RisparmioEntity {
     private String descrizione;
     private BigDecimal euro;
     private String periodo;
+    @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private boolean isTotale = false;
 }

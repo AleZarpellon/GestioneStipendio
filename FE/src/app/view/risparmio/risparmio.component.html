@@ -3,7 +3,7 @@
     <div class="w-full! mb-12 section">
       <div class="mb-4">
         <h1 class="text-title text-center mb-3">RISPARMI</h1>
-        <div class="flex justify-between items-center">
+        <div class="flex justify-between items-center mb-2">
           <div class="flex items-center gap-2">
             <span class="font-medium text-body">Periodo:</span>
             <p-select
@@ -23,6 +23,10 @@
             <span class="font-bold text-title">
               {{ totale() | currency: 'EUR' : 'symbol' : '1.2-2' }}
             </span>
+            <i
+              class="pi pi-pencil cursor-pointer text-amber-400 hover:text-amber-500"
+              (click)="apriDialogTotale()"
+            ></i>
           </div>
         </div>
         <p-table [columns]="cols()" [value]="risparmioListFiltrata()">
@@ -51,3 +55,47 @@
     </div>
   </p-card>
 </div>
+
+<p-dialog
+  [(visible)]="dialogTotaleVisible"
+  [modal]="true"
+  [draggable]="false"
+  header="Aggiorna totale"
+  styleClass="w-96"
+>
+  <div class="flex flex-col gap-4 pt-2">
+    <div class="flex flex-col gap-1">
+      <label class="font-medium text-body">Importo (+ / -)</label>
+      <div class="relative">
+        <input
+          pInputText
+          type="number"
+          [(ngModel)]="totaleInput"
+          class="block h-11 w-full rounded-lg bg-card-hover text-body pl-3 pr-10"
+        />
+        <i
+          class="pi pi-euro text-amber-400 pointer-events-none absolute top-1/2 right-3 -translate-y-1/2"
+        ></i>
+      </div>
+    </div>
+  </div>
+
+  <ng-template #footer>
+    <div class="flex justify-end gap-3 pt-2">
+      <p-button
+        label="Annulla"
+        icon="pi pi-times"
+        styleClass="btn-secondary"
+        (onClick)="chiudiDialogTotale()"
+      ></p-button>
+
+      <p-button
+        label="Conferma"
+        icon="pi pi-check"
+        styleClass="btn-success"
+        [disabled]="totaleInput === null || totaleInput === undefined"
+        (onClick)="confermaTotale()"
+      ></p-button>
+    </div>
+  </ng-template>
+</p-dialog>
