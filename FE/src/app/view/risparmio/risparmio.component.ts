@@ -59,9 +59,15 @@ export class RisparmioComponent {
   ngOnInit(): void {
     this.risparmioService.getRisparmi().subscribe({
       next: (res) => {
-        if (res.success) this.risparmioList.set(res.data);
+        if (res.success) {
+          this.toastService.show('success', 'Successo!', res.message);
+          this.risparmioList.set(res.data);
+        }
       },
-      error: (err) => console.error(err),
+      error: (err) => {
+        this.toastService.showErrorHttp(err.message);
+        console.error(err);
+      },
     });
   }
 
