@@ -11,3 +11,8 @@ BE/test.db
 
 # JAR (viene generato dal build)
 FE/resources/app.jar
+BE/data.db-shm
+BE/data.db-wal
+FE/package-lock.json
+FE/test.db
+FE/data.db
